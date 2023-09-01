@@ -184,13 +184,22 @@ int main()
         getline(inputString, tempString, ',');
         quantity = atoi(tempString.c_str());
 
+        bool is_valid=true;
+        string reason ;
+
         getline(inputString, tempString, ',');
-        price = stod(tempString.c_str());
+        try {
+            price = stod(tempString);
+        } catch (const std::invalid_argument& e) {
+            reason = "Price is not valid";
+            is_valid = false;
+        }
+
 
         //check whether the order is a valid order or not
 
-        string reason ;
-        bool is_valid=true;
+       
+        
         
         if(quantity>1000 || quantity<10 ){
             reason = "quantity is outside the range";
@@ -200,7 +209,7 @@ int main()
             reason = "quantity is not a multiple of 10";
              is_valid=false;
 
-        }else if(price<=0){
+        }else if(!(price>0)){
             reason = "Price is not greater than 0";
              is_valid=false;
 
