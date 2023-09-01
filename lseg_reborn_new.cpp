@@ -37,12 +37,7 @@ class Record{
         }
 
 };
-///////////////////////////////////////////////////////function that will display the values - not need at all/////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-/////////////////////////////////////////////////////////////Get time//////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////Get time///////////////////////////////////////////////////////////////////////////////////////////////////////////
 string get_time(){
 
     // Get the current time point
@@ -66,7 +61,7 @@ string get_time(){
     //std::cout << "Timestamp: " << oss.str() << std::endl;
     return oss.str();
 }
-///////////////////////////////////////////////////////////Order Book Buy////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////Order Book Buy//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct Order_book_buy{
 
@@ -94,7 +89,7 @@ struct Order_book_buy{
     }
 };
 
-/// Order Book sell  /////////////////////////////////////////////Order Book Sell/////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////Order Book Sell///////////////////////////////////////////////////////////////////////////////////
 struct Order_book_sell{
 
     int o_side;
@@ -122,48 +117,28 @@ struct Order_book_sell{
 
 
 };
-//////////////////////////////////////////////////Logic of filling the order book for buy is the new arrive order////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////logic of book filling deleted as it added to the main function//////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-/////////////////////////////////////////////////////////Order class still constructing/////////////////////////////////////////////////////////
-class Order{
-
-    string e_client_order_id;
-    string e_order_id;
-    string e_instrument;
-    int e_side;
-    double e_price;
-    int e_quantity;
-    int e_status;
-    string e_reason;
-    string e_transaction_time;
-
-    Order(){
-
-    }
-
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////main function/////////////////////////////////////////////////////////////////////
 
 int main()
 {   
-    ifstream inputfile; // a variable to have the input file
-    inputfile.open("C:\\Users\\User\\Desktop\\lseg_proj\\order_l.csv"); // location of the input file
+    // Open input and output files
+    ifstream inputfile;                                                      
+    inputfile.open("C:\\Users\\User\\Desktop\\lseg_proj\\order.csv");     
     
     ofstream outputfile;
-    outputfile.open("C:\\Users\\User\\Desktop\\lseg_proj\\execution_rep.csv");
+    outputfile.open("C:\\Users\\User\\Desktop\\lseg_proj\\execution_rep.csv");// location of the output file
+
+    // Print the  headers in the output file
     outputfile << "client_order_id " << "," << "order_id  "<< ","  << "instrument"<< " , "  << "side"<< " , "  << "price"<< " , "  << "quantity"<< " , "  << "status"<< " , "  << "reason"<< " , "  << "transaction_time" << " , " << endl  ;
     
     string line="";
 
-    vector <Record> students;
+
     vector <Order_book_buy> OB_buy;
     vector <Order_book_sell> OB_sell;
 
+    // Define order books for different instruments
     vector <Order_book_buy> OB_buy_rose;
     vector <Order_book_sell> OB_sell_rose;
 
@@ -180,14 +155,16 @@ int main()
     vector <Order_book_sell> OB_sell_lotus;
 
 
-    int count = -1;
+    int count = -1; // Variable to indicate how many lines read , lines count start from -1 which is the header and orders are starting from 0
 
-    while(getline(inputfile,line)){  // with in a while loop reading the input file by line by line
-       
+    while(getline(inputfile,line)){  // with in this while loop we read the inputs of the order file by line by line
 
+        //only one line is taken
 
         if(count<0){count++;continue;} // to ignore the first line which is just the header file of the input file
         count++;
+
+        //make all the inputs in to separate variables 
         string class_order_id;
         string instrument;
         int side;
@@ -210,8 +187,7 @@ int main()
         getline(inputString, tempString, ',');
         price = stod(tempString.c_str());
 
-        Record rec_student(class_order_id,instrument,side,quantity,price);
-        students.push_back(rec_student);
+        //check whether the order is a valid order or not
 
         string reason ;
         bool is_valid=true;
@@ -219,9 +195,11 @@ int main()
         if(quantity>1000 || quantity<10 ){
             reason = "quantity is outside the range";
              is_valid=false;
+
         }else if(quantity%10!=0){
             reason = "quantity is not a multiple of 10";
              is_valid=false;
+
         }else if(price<=0){
             reason = "Price is not greater than 0";
              is_valid=false;
@@ -229,6 +207,7 @@ int main()
         }else if(instrument != "Rose" && instrument != "Lavender" && instrument != "Tulip" && instrument != "Orchid" && instrument != "Lotus" ){
             reason = "Not a valid instrument";
              is_valid=false;
+
         }else if(side!=1 && side!=2){
             reason = "Not a valid side";
              is_valid=false;
@@ -237,10 +216,11 @@ int main()
         if(!is_valid){
             outputfile << "Order" << count << " ," << class_order_id << " ," << instrument << " ," <<side << ", " << price << " ," << quantity << " ," << "Reject" << " ," << reason << " ," << get_time() << endl;
             continue;
+
         }else{
-        /*Record rec(class_order_id,instrument,side,quantity,price);
-        rec.print();
-        cout << "//////////////////////////////\n" ;*/
+        
+        //iff the order is valid below parts run , here we only use two Books "OB_buy" and "OB_sell" to make the logic 
+        //so we change the variables to refer the corresponding actual book
         if(instrument=="Rose"){
             OB_buy = OB_buy_rose;
             OB_sell = OB_sell_rose;
@@ -265,31 +245,39 @@ int main()
         vector <Order_book_buy> vb ;
         vector <Order_book_sell> vs;
 
+        ////////////////////////////////////////////////////////////////////////BUY side order////////////////////////////////////////////////////////////////////////////////////////
 
         if(side==1){    // check whether the order is in the buy side
+
             Order_book_buy book(count,side,class_order_id,price,quantity);
             OB_buy.push_back(book);
             sort(OB_buy.begin(), OB_buy.end());
-            bool need_loop_buy = true;      // Erase this code will work fine
-            bool is_new=true;
+
+            bool need_loop_buy = true;      // terminate the loop
+            bool is_new=true;               // to stop re-printing same order on the loop
             
-             //////////////////////////////////////////
+             //when the sell book is empty simply need to move for the next order by writing this as a new buy order in the order book
             if(OB_sell.size()==0){
                 outputfile << "Order"<< count << ", " << class_order_id << ", " << instrument << ", " <<side << ", " << price << "," << quantity << ", " << "New"<< " ," << " ," << get_time() << endl;
+                need_loop_buy=false; //if the buyer side is empty just need to put the buy order;
             }
 
 
             while(need_loop_buy){
-                if(OB_buy.size()>0 && OB_sell.size()>0){    
-                    vb=OB_buy;
+                if(OB_sell.size()>0 && OB_buy.size()>0  ){    
+
+                    vb=OB_buy;  //*can remove this variable shift
                     vs=OB_sell;
+
+                    //////////////////////////////////////////logic of what to do when the current order is a buy order////////////////////////////////////////////////////////
+
                     if(vb[0].o_price < vs[0].o_price  ){      // can not buy the order -- seling prices are too high
                         need_loop_buy = false;
                         if(is_new){
                             outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << ", " << price << " ," << quantity << " ," << "New" << " ,"<< " ," << " ," << get_time() << endl;
                         }
                     }
-                    else if(vb[0].o_quantity <= vs[0].o_quantity){    // can completly buy the order from the top most seller
+                    else if(vb[0].o_quantity <= vs[0].o_quantity){    // can completly buy the order from the top most seller // for all FILL or PFILL orders price is the selling price
                         outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << ", " <<side << ", " << vs[0].o_price << " ," << quantity << ", " << "Fill" << " ," << " ," << get_time() << endl;
                         
                         if(vs[0].o_quantity == vb[0].o_quantity){
@@ -302,7 +290,7 @@ int main()
                         vb.erase(vb.begin());
                         need_loop_buy = false;
                     }
-                    else{    // need several sellers to thhink about what happens with the order
+                    else{    // need several sellers to think about what happens with the order
                         outputfile << "Order" << count << ", " << class_order_id << " ," << instrument << " ," <<side << ", " << vs[0].o_price << ", " << vs[0].o_quantity << ", " << "Pfill"<< " ," << ", "<< get_time() << endl;
                         outputfile << "Order" <<  vs[0].o_given_id << ", " << vs[0].o_id << " ," << instrument << " ," <<vs[0].o_side << " ," << vs[0].o_price << " ," << vs[0].o_quantity << ", " << "Fill"<< " ," << ", "  << get_time() << endl;
                         
@@ -317,27 +305,29 @@ int main()
                     need_loop_buy = false;
                 }
             }
-               ///////////////////////////////////////////
-             //logic
+              
+        ///////////////////////////////////////////////////////////////////logic of what to do when the current order is a sell order////////////////////////////////////////////////////////
 
         }else if(side==2){  // check whether the order is on the sell side
+
             Order_book_sell book(count,side,class_order_id,price,quantity);
             OB_sell.push_back(book);
             sort(OB_sell.begin(), OB_sell.end());
             bool need_loop_sell=true;
             bool is_new=true;
+
             if(OB_buy.size()==0){
                 outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << " ," << price << " ," << quantity << " ," << "New" << " ,"<< " ," << get_time() << endl;
+                need_loop_sell=false; //if the buyer side is empty just need to put the sell order
             }
             while(need_loop_sell){
-                /////////////////////////////////////////////////////
-                
+
                 if(OB_buy.size()>0 && OB_sell.size()>0){
                     
                     vb=OB_buy;
                     vs=OB_sell;
                     
-                    if(vb[0].o_price < vs[0].o_price || vb.size()==0  ){      // can not buy the order -- seling pricesare too high
+                    if(vb[0].o_price < vs[0].o_price ){      // can not buy the order -- seling pricesare too high
                         need_loop_sell=false;
                         if(is_new){
                             outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << ", " << price << " ," << quantity << " ," << "New" << " ,"<< ", " << get_time() << endl;
@@ -375,8 +365,11 @@ int main()
                     need_loop_sell = false;
                 }
             }
-                //////////////////////////////////////////////s///////
+                
         }
+
+        //rechange the dummy variable to it's actual order book representation
+
         if(instrument=="Rose"){
             OB_buy_rose = OB_buy;
             OB_sell_rose = OB_sell;
@@ -397,79 +390,6 @@ int main()
             OB_buy_lotus = OB_buy;
             OB_sell_lotus = OB_sell;
         }
-       
-
         }
     }   
- /*       
-        cout << "Order Book Buy Rose is: " << endl;
-        for (Order_book_buy num : OB_buy_rose) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "\n" << endl;
-        cout << "Order Book Sell Rose is: " << endl;
-        for (Order_book_sell num : OB_sell_rose) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "////////////////////////////////////////////" << endl;
-         cout << "Order Book Buy lavender is: " << endl;
-        for (Order_book_buy num : OB_buy_lavender) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "\n" << endl;
-        cout << "Order Book Sell lavender is: " << endl;
-        for (Order_book_sell num : OB_sell_lavender) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "////////////////////////////////////////////" << endl;
-         cout << "Order Book Buy tulip is: " << endl;
-        for (Order_book_buy num : OB_buy_tulip) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "\n" << endl;
-        cout << "Order Book Sell tulip is: " << endl;
-        for (Order_book_sell num : OB_sell_tulip) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "////////////////////////////////////////////" << endl;
-         cout << "Order Book Buy orchid is: " << endl;
-        for (Order_book_buy num : OB_buy_orchid) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "\n" << endl;
-        cout << "Order Book Sell orchid is: " << endl;
-        for (Order_book_sell num : OB_sell_orchid) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "////////////////////////////////////////////" << endl;
-         cout << "Order Book Buy lotus is: " << endl;
-        for (Order_book_buy num : OB_buy_lotus) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "\n" << endl;
-        cout << "Order Book Sell lotus is: " << endl;
-        for (Order_book_sell num : OB_sell_lotus) {
-            num.print_ob() ;
-            cout << "order book dum dum" << endl;
-        }
-        cout << "////////////////////////////////////////////" << endl;
-
-*/
-
-
-
-
-        //outputfile << "Order" << count << " " << class_order_id << " " << instrument << " " <<side << " " << price << " " << quantity << " " << "New" << " " << "reason??" << " " << get_time() << endl;
-
-    //display_all(students);
-
 }
