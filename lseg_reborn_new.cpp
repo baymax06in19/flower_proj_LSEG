@@ -8,38 +8,15 @@
 #include <ctime>
 #include <iomanip>
 #include <algorithm>
+#include <thread>
+#include <future>
 
 using namespace std;
  
-////////////////////////////////////////////////////////////////// Record class used to print the values - not need at all  /////////////////////////////////////////////////////////////////////////////////////////////
-class Record{
-    string r_class_order_id,r_instrument;
-    int r_side,r_quantity;
-    double r_price;
-
-    public:
-
-        Record (string a , string b, int c, int d, double e){
-            r_class_order_id = a;
-            r_instrument = b;
-            r_side = c;
-            r_quantity = d;
-            r_price = e;
-        } 
-        void print(){
-            cout << "r_class_order_id: " << r_class_order_id << endl;
-            cout << "r_instrument: " << r_instrument << endl;
-            cout << "r_side: " << r_side  << endl;
-            cout << "r_quantity: " << r_quantity << endl;
-            cout << "r_price: " << r_price << endl;
-            cout << "//////DONE/////" << endl;
-
-        }
-
-};
 /////////////////////////////////////////////////////////////Get time///////////////////////////////////////////////////////////////////////////////////////////////////////////
 string get_time(){
 
+    //return "";
     // Get the current time point
     auto now = std::chrono::system_clock::now();
     
@@ -60,6 +37,21 @@ string get_time(){
 
     //std::cout << "Timestamp: " << oss.str() << std::endl;
     return oss.str();
+}
+////////////////////////////////////////////////////////////////// Record class used to print the values - not need at all  /////////////////////////////////////////////////////////////////////////////////////////////
+void print(int count,string class_order_id,string instrument,int side,double price,int quantity,string status,string reason,  ofstream& outputfile){
+
+            outputfile <<"Order" <<  count <<",";
+            outputfile <<class_order_id <<",";
+            outputfile << instrument << ",";
+            outputfile << side  << ",";
+            outputfile << price << ",";
+            outputfile << quantity <<",";
+            outputfile << status << ",";
+            outputfile << reason << ",";
+            outputfile << get_time() << endl;
+            return;
+            
 }
 ///////////////////////////////////////////////////////////Order Book Buy//////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -122,6 +114,7 @@ struct Order_book_sell{
 
 int main()
 {   
+
     // Open input and output files
     ifstream inputfile;                                                      
     inputfile.open("C:\\Users\\User\\Desktop\\lseg_proj\\order.csv");     
@@ -223,7 +216,8 @@ int main()
         }
         
         if(!is_valid){
-            outputfile << "Order" << count << " ," << class_order_id << " ," << instrument << " ," <<side << ", " << price << " ," << quantity << " ," << "Reject" << " ," << reason << " ," << get_time() << endl;
+            //outputfile << "Order" << count << " ," << class_order_id << " ," << instrument << " ," <<side << ", " << price << " ," << quantity << " ," << "Reject" << " ," << reason << " ," << get_time() << endl;
+            print(count,class_order_id,instrument,side,price, quantity,"Reject",reason, outputfile);
             continue;
 
         }else{
@@ -267,7 +261,8 @@ int main()
             
              //when the sell book is empty simply need to move for the next order by writing this as a new buy order in the order book
             if(OB_sell.size()==0){
-                outputfile << "Order"<< count << ", " << class_order_id << ", " << instrument << ", " <<side << ", " << price << "," << quantity << ", " << "New"<< " ," << " ," << get_time() << endl;
+                //outputfile << "Order"<< count << ", " << class_order_id << ", " << instrument << ", " <<side << ", " << price << "," << quantity << ", " << "New"<< " ," << " ," << get_time() << endl;
+                print(count,class_order_id,instrument,side,price, quantity,"NEW"," ", outputfile);
                 need_loop_buy=false; //if the buyer side is empty just need to put the buy order;
             }
 
@@ -283,26 +278,30 @@ int main()
                     if(vb[0].o_price < vs[0].o_price  ){      // can not buy the order -- seling prices are too high
                         need_loop_buy = false;
                         if(is_new){
-                            outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << ", " << price << " ," << quantity << " ," << "New" << " ,"<< " ," << " ," << get_time() << endl;
+                            //outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << ", " << price << " ," << quantity << " ," << "New" << " ,"<< " ," << " ," << get_time() << endl;
+                            print(count,class_order_id,instrument,side,price, quantity,"NEW"," ", outputfile);
                         }
                     }
                     else if(vb[0].o_quantity <= vs[0].o_quantity){    // can completly buy the order from the top most seller // for all FILL or PFILL orders price is the selling price
-                        outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << ", " <<side << ", " << vs[0].o_price << " ," << quantity << ", " << "Fill" << " ," << " ," << get_time() << endl;
-                        
+                        //outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << ", " <<side << ", " << vs[0].o_price << " ," << quantity << ", " << "Fill" << " ," << " ," << get_time() << endl;
+                        print(count,class_order_id,instrument,side,vs[0].o_price, quantity,"Fill"," ", outputfile);
                         if(vs[0].o_quantity == vb[0].o_quantity){
-                            outputfile <<  "Order " << vs[0].o_given_id << ", " << vs[0].o_id << " ," << instrument << " ," << vs[0].o_side<< " ," << vs[0].o_price << " ," << vb[0].o_quantity << " ," << "Fill"<< " ," << " ," << get_time() << endl;
+                            //outputfile <<  "Order " << vs[0].o_given_id << ", " << vs[0].o_id << " ," << instrument << " ," << vs[0].o_side<< " ," << vs[0].o_price << " ," << vb[0].o_quantity << " ," << "Fill"<< " ," << " ," << get_time() << endl;
+                            print(vs[0].o_given_id,vs[0].o_id,instrument, vs[0].o_side,vs[0].o_price, vb[0].o_quantity,"Fill"," ", outputfile);
                             vs.erase(vs.begin());
                         }else {
-                            outputfile <<  "Order " << vs[0].o_given_id << ", " << vs[0].o_id << ", " << instrument << ", " << vs[0].o_side<< ", " << vs[0].o_price << " ," << vb[0].o_quantity << ", " << "pFill" << " ,"<< " ," << get_time() << endl;
+                            //outputfile <<  "Order " << vs[0].o_given_id << ", " << vs[0].o_id << ", " << instrument << ", " << vs[0].o_side<< ", " << vs[0].o_price << " ," << vb[0].o_quantity << ", " << "pFill" << " ,"<< " ," << get_time() << endl;
+                            print(vs[0].o_given_id,vs[0].o_id,instrument, vs[0].o_side,vs[0].o_price, vb[0].o_quantity,"Pfill"," ", outputfile);
                             vs[0].o_quantity = vs[0].o_quantity - vb[0].o_quantity;
                         }
                         vb.erase(vb.begin());
                         need_loop_buy = false;
                     }
                     else{    // need several sellers to think about what happens with the order
-                        outputfile << "Order" << count << ", " << class_order_id << " ," << instrument << " ," <<side << ", " << vs[0].o_price << ", " << vs[0].o_quantity << ", " << "Pfill"<< " ," << ", "<< get_time() << endl;
-                        outputfile << "Order" <<  vs[0].o_given_id << ", " << vs[0].o_id << " ," << instrument << " ," <<vs[0].o_side << " ," << vs[0].o_price << " ," << vs[0].o_quantity << ", " << "Fill"<< " ," << ", "  << get_time() << endl;
-                        
+                        //outputfile << "Order" << count << ", " << class_order_id << " ," << instrument << " ," <<side << ", " << vs[0].o_price << ", " << vs[0].o_quantity << ", " << "Pfill"<< " ," << ", "<< get_time() << endl;
+                        print(count,class_order_id,instrument, side,vs[0].o_price, vs[0].o_quantity,"Pfill"," ", outputfile);
+                        //outputfile << "Order" <<  vs[0].o_given_id << ", " << vs[0].o_id << " ," << instrument << " ," <<vs[0].o_side << " ," << vs[0].o_price << " ," << vs[0].o_quantity << ", " << "Fill"<< " ," << ", "  << get_time() << endl;
+                        print(vs[0].o_given_id,vs[0].o_id ,instrument, vs[0].o_side,vs[0].o_price, vs[0].o_quantity,"Fill"," ", outputfile);
                         vb[0].o_quantity = vb[0].o_quantity - vs[0].o_quantity;
                         quantity=vb[0].o_quantity;
                         vs.erase(vs.begin());        
@@ -326,7 +325,8 @@ int main()
             bool is_new=true;
 
             if(OB_buy.size()==0){
-                outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << " ," << price << " ," << quantity << " ," << "New" << " ,"<< " ," << get_time() << endl;
+                //outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << " ," << price << " ," << quantity << " ," << "New" << " ,"<< " ," << get_time() << endl;
+                print(count,class_order_id ,instrument, side,price,  quantity,"New"," ", outputfile);
                 need_loop_sell=false; //if the buyer side is empty just need to put the sell order
             }
             while(need_loop_sell){
@@ -339,19 +339,22 @@ int main()
                     if(vb[0].o_price < vs[0].o_price ){      // can not buy the order -- seling pricesare too high
                         need_loop_sell=false;
                         if(is_new){
-                            outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << ", " << price << " ," << quantity << " ," << "New" << " ,"<< ", " << get_time() << endl;
+                            //outputfile << "Order" << count << " ," << class_order_id << ", " << instrument << ", " <<side << ", " << price << " ," << quantity << " ," << "New" << " ,"<< ", " << get_time() << endl;
+                            print(count,class_order_id ,instrument, side,price,  quantity,"New"," ", outputfile);
                         }
                     }
                     else if(vb[0].o_quantity >= vs[0].o_quantity){    // can completly buy the order from the top most seller
-                        outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << " ," <<side << " ," << vb[0].o_price << " ," << quantity << ", " << "Fill"<< " ," << ", " << get_time() << endl;
-                        
+                        //outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << " ," <<side << " ," << vb[0].o_price << " ," << quantity << ", " << "Fill"<< " ," << ", " << get_time() << endl;
+                        print(count,class_order_id ,instrument, side,vb[0].o_price,  quantity, "Fill"," ", outputfile);
                         
                         if(vb[0].o_quantity == vs[0].o_quantity){
-                            outputfile <<  "Order" << vb[0].o_given_id << "," << vb[0].o_id << " ," << instrument << " ," <<vb[0].o_side << " ," << vb[0].o_price << ", " << vb[0].o_quantity << " ," << "Fill"<< " ," << " ," << get_time() << endl;
+                            //outputfile <<  "Order" << vb[0].o_given_id << "," << vb[0].o_id << " ," << instrument << " ," <<vb[0].o_side << " ," << vb[0].o_price << ", " << vb[0].o_quantity << " ," << "Fill"<< " ," << " ," << get_time() << endl;
+                            print(vb[0].o_given_id, vb[0].o_id,instrument,vb[0].o_side,vb[0].o_price,  vb[0].o_quantity, "Fill"," ", outputfile);
                             vb.erase(vb.begin());
                             
                         }else{
-                            outputfile <<  "Order" << vb[0].o_given_id << " ," << vb[0].o_id << ", " << instrument << ", " <<vb[0].o_side << " ," << vb[0].o_price << " ," << vs[0].o_quantity << " ," << "Fill" << " ,"<< ", " << get_time() << endl;
+                            //outputfile <<  "Order" << vb[0].o_given_id << " ," << vb[0].o_id << ", " << instrument << ", " <<vb[0].o_side << " ," << vb[0].o_price << " ," << vs[0].o_quantity << " ," << "Fill" << " ,"<< ", " << get_time() << endl;
+                            print(vb[0].o_given_id, vb[0].o_id,instrument,vb[0].o_side,vb[0].o_price,  vs[0].o_quantity, "Fill"," ", outputfile);
                             vb[0].o_quantity = vb[0].o_quantity - vs[0].o_quantity;
                         }
                         vs.erase(vs.begin());
@@ -359,9 +362,11 @@ int main()
                     }
                     else{    // need several sellers to think about what happens with the order
                         //outputfile need to be written
-                        outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << " ," <<side << " ," << vb[0].o_price << " ," << vb[0].o_quantity << ", " << "Pfill" << " ,"<< " ," << get_time() << endl;
-                        outputfile << "Order" << vb[0].o_given_id << " ," << vb[0].o_id << ", " << instrument << " ," <<vb[0].o_side << " ," << vb[0].o_price << " ," << vb[0].o_quantity << " ," << "Fill"<< " ," << " ," << get_time() << endl;
-                         
+                        //outputfile << "Order" << count << ", " << class_order_id << ", " << instrument << " ," <<side << " ," << vb[0].o_price << " ," << vb[0].o_quantity << ", " << "Pfill" << " ,"<< " ," << get_time() << endl;
+                        print(count, class_order_id,instrument,side,vb[0].o_price,  vb[0].o_quantity, "Pfill"," ", outputfile);
+                        //outputfile << "Order" << vb[0].o_given_id << " ," << vb[0].o_id << ", " << instrument << " ," <<vb[0].o_side << " ," << vb[0].o_price << " ," << vb[0].o_quantity << " ," << "Fill"<< " ," << " ," << get_time() << endl;
+                        print(vb[0].o_given_id, vb[0].o_id,instrument,vb[0].o_side,vb[0].o_price,  vb[0].o_quantity, "Fill"," ", outputfile);
+
                         vs[0].o_quantity = vs[0].o_quantity - vb[0].o_quantity;
                         quantity=vs[0].o_quantity;
                         vb.erase(vb.begin());
